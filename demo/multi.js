@@ -26,6 +26,7 @@ multi._computeOverhead = function(location) {
     multi._requestAction({
       host: location.hostname,
       ping: true,
+      funcUri: "benchmark",
       data: new Buffer(100 * 1024) // 100KB
     }, function() {
       var cost = (new Date()) - startDate;
@@ -58,7 +59,7 @@ multi._listenForActions = function() {
       request = serialiser.rebuild(allData);
       buffer = null; buffers = null; allData = null;
 
-      if (multi._debug) console.log("Worker", cluster.worker.id, "Request:", request)
+      if (multi._debug) console.log("Worker", cluster.worker.id, "Processing:", request.funcUri.split('LNUG-01-16').pop())
 
       if (request.ping) {
         var serial = serialiser.serialize(request);
@@ -92,7 +93,7 @@ multi._processRequest = function(request, callback) {
 
 multi._infectProject = function() {
   multi._findModules(parentModule, [ ], [ ], function(host, funcUri, scope, params, callback) {
-    if (multi._debug) console.log("Worker", cluster.worker.id, "Requesting:", host, funcUri);
+    if (multi._debug) console.log("Worker", cluster.worker.id, "Requesting:", host, funcUri.split('LNUG-01-16').pop());
     var request = {
       host: host,
       funcUri: funcUri,
@@ -116,6 +117,7 @@ multi._findModules = function(someModule, visitedModules, infectedFunctions, rem
   if (someModule.exports &&
      (!someModule.filename.toLowerCase().match(module.filename)) &&
      (someModule.filename.indexOf('serialiser') === -1) &&
+     (someModule.filename.indexOf('multi') === -1) &&
      true ) {
     multi._findFunctions(someModule, 'exports', someModule.filename+':exports', infectedFunctions, remoteInvocation);
   }
@@ -147,7 +149,7 @@ multi._infectFunction = function(someModule, someProperty, funcUri, infectedFunc
   var originalFunction = someModule[someProperty];
   if (infectedFunctions.indexOf(originalFunction) !== -1) return;
 
-  if (this._debug) console.log("Worker", cluster.worker.id, "Examining:", funcUri);
+  if (this._debug) console.log("Worker", cluster.worker.id, "Examining:", funcUri.split('LNUG-01-16').pop());
 
   var funcInfo = {
     func: originalFunction,
@@ -162,7 +164,7 @@ multi._infectFunction = function(someModule, someProperty, funcUri, infectedFunc
       var self = this;
 
       if (funcInfo.cost == Infinity) {
-        if (multi._debug) console.log("Worker", cluster.worker.id, "Testing:", funcUri);
+        if (multi._debug) console.log("Worker", cluster.worker.id, "Testing:", funcUri.split('LNUG-01-16').pop());
         var startDate = new Date();
         process.nextTick(function() {
           funcInfo.blocker = (funcInfo.cost != Infinity);
@@ -172,10 +174,10 @@ multi._infectFunction = function(someModule, someProperty, funcUri, infectedFunc
         var after = serialiser.serialize(self);
         // console.log(before, after)
         funcInfo.cost = (new Date()) - startDate;
-        if (multi._debug) console.log("Worker", cluster.worker.id, "Cost:", funcInfo.cost, "Safe:", before==after, funcUri);
+        if (multi._debug) console.log("Worker", cluster.worker.id, "Cost:", funcInfo.cost, "Safe:", before==after, funcUri.split('LNUG-01-16').pop());
         funcInfo.threadSafe = true; // (before==after) ??
         if ((multi._locations[0].overhead > funcInfo.cost) || !funcInfo.threadSafe){
-          if (self._debug) console.log("Worker", cluster.worker.id, "Rolling back:", funcUri);
+          if (self._debug) console.log("Worker", cluster.worker.id, "Rolling back:", funcUri.split('LNUG-01-16').pop());
           someModule[someProperty] = originalFunction;
         }
         return result;
@@ -183,7 +185,7 @@ multi._infectFunction = function(someModule, someProperty, funcUri, infectedFunc
 
       var cb = functionArgs.slice(-1).pop();
       if (!(cb instanceof Function)) {
-        if (self._debug) console.log("Worker", cluster.worker.id, "No callback:", funcUri);
+        if (self._debug) console.log("Worker", cluster.worker.id, "No callback:", funcUri.split('LNUG-01-16').pop());
         return originalFunction.apply(self, functionArgs);
       }
 
@@ -196,7 +198,7 @@ multi._infectFunction = function(someModule, someProperty, funcUri, infectedFunc
         }
       }
       if (!host) {
-        if (self._debug) console.log("Worker", cluster.worker.id, "No host to execute:", funcUri);
+        if (self._debug) console.log("Worker", cluster.worker.id, "No host to execute:", funcUri.split('LNUG-01-16').pop());
         return originalFunction.apply(self, functionArgs);
       }
       remoteInvocation(host, funcUri, self, functionArgs, function() {
@@ -243,5 +245,7 @@ if (cluster.isMaster) {
   multi._isMaster = true;
 } else {
   multi._listenForActions();
-  multi._infectProject();
+  setTimeout(function() {
+    multi._infectProject();
+  }, 100);
 }

@@ -13,7 +13,7 @@ tasks.prototype.compute = function(params, callback) {
   var self = this;
   var workStart = moment();
 
-  for (var i=0; i<10; i++) {
+  for (var i=0; i<20; i++) {
     work.push(function(cb) { self._slowComputation(params, workStart, cb) });
   }
 
@@ -21,10 +21,10 @@ tasks.prototype.compute = function(params, callback) {
 };
 
 tasks.prototype._slowComputation = function(params, date, callback) {
-  console.log("Date is moment?", moment.isMoment(date), 'Year:', date.format('YYYY'), "this:", JSON.stringify(this));
+  // console.log("Date is moment?", moment.isMoment(date), 'Year:', date.format('YYYY'), "this:", JSON.stringify(this));
   var t = 0;
   for (var i=0; i<100000; i++) {
-    for (var j=0; j<10000; j++) {
+    for (var j=0; j<4000; j++) {
       t += i * j;
     }
   }

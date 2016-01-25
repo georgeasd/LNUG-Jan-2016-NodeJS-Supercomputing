@@ -5,7 +5,6 @@ var moment = require('moment');
 var multi = require('./multi.js');
 if (multi._isMaster) return;
 multi.loadBalancer('localhost');
-// multi.loadBalancer('10.9.8.70');
 
 var server = http.createServer(function(req, res) {
   var startDate = new Date();
